@@ -1,0 +1,98 @@
+/ --- New "Controls" Card ---
+.card.mb-4
+  .row.align-items-center
+    .col-md-4
+      %h4.mb-md-0.mb-3 nodes /
+    .col-md-8
+      / Original buttons, now wrapped
+      %form.d-flex.gap-2.justify-content-md-end#oxButtons
+        / Datatables ColVis button will be prepended here by JS
+        %button.btn.btn-primary{type: 'button', onclick: 'history.go();'}
+          %i.bi.bi-arrow-clockwise
+          Refresh
+        %button.btn.btn-primary#resetSearch{type: 'button'}
+          %i.bi.bi-eraser-fill
+          Reset
+        %button.btn.btn-primary#reload{type: 'button'}
+          %i.bi.bi-repeat
+          Reload Nodes
+
+/ --- New "Table" Card ---
+.card-table
+  .table-responsive
+    %table.table.table-sm.table-hover#nodesTable
+      %thead
+        %tr
+          %th Name
+          %th IP
+          %th Model
+          %th Group
+          %th Last Status
+          %th Last Update
+          %th Last Changed
+          %th Actions
+
+      %tbody
+        - @data.sort_by{|e|e[:name]}.each do |node|
+          %tr
+            %td
+              %a{href: url_for("/node/show/#{node[:name]}")} #{node[:name]}
+            %td= node[:ip]
+            %td
+              %a{href: url_for("/nodes/model/#{node[:model]}")} #{node[:model]}
+            %td
+              %a{href: url_for("/nodes/group/#{node[:group]}")} #{node[:group]}
+            %td
+              / --- MODIFIED LINE: Added .to_s.downcase to force lowercase ---
+              %div{title: node[:status], class: "status-pill status-pill-#{node[:status].to_s.downcase}"}
+                %span #{node[:status]}
+            %td.time{ epoch: node[:time].to_i }= node[:time]
+            %td.time{ epoch: node[:mtime].to_i }= node[:mtime]
+            %td
+              %a.link-dark.link-underline-opacity-0{title: 'Configuration',
+                  href: url_for("/node/fetch/#{node[:full_name]}")}
+                %i.bi.bi-cloud-download
+              &nbsp;&nbsp;
+              %a.link-dark.link-underline-opacity-0{title: 'Versions',
+                href: url_for("/node/version?node_full=#{node[:full_name]}")}
+                %i.bi.bi-stack
+              / --- TYPO FIX: Replaced &L; with &nbsp; ---
+              &nbsp;&nbsp;
+              %a.link-dark.link-underline-opacity-0{title: 'Update configuration',
+                href: url_for("/node/next/#{node[:full_name]}")}
+                %i.bi.bi-repeat
+
+/ Original Javascript
+:javascript
+  $(function() {
+    var table = $('#nodesTable').DataTable({
+      columnDefs: [
+        {
+          /* Hide IP address by default */
+          target: 1,
+          visible: false,
+        },
+        {
+          /* do not permit to hide Name and Actions */
+          targets: [0,7],
+          className: 'noVis'
+        },
+      ],
+      buttons:
+        [{
+          extend: 'colvis',
+          columns: ':not(.noVis)',
+          className: 'btn-primary',
+        }],
+      autoWidth: false,
+      lengthMenu: [20, 50, 250, 500, { label: 'All', value: -1 }],
+      stateSave: true,
+    });
+
+    table.buttons(0,0).container().prependTo($('#oxButtons'));
+    table.buttons(0,0).nodes().removeClass('btn-secondary');
+
+    $('#resetSearch').on('click', function() {
+        table.search('').draw();
+    });
+  });

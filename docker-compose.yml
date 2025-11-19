@@ -1,0 +1,18 @@
+services:
+  oxidized:
+    build: ./oxidized
+    container_name: oxidized
+    restart: unless-stopped
+    hostname: oxidized
+    ports:
+      - "8888:8888"
+    volumes:
+      - oxidized-git-repo:/home/oxidized/.config/oxidized/configs.git
+    environment:
+      - VAULT_ADDR=${VAULT_ADDR}
+      - VAULT_TOKEN=${VAULT_TOKEN}
+      - GIT_REMOTE_REPO=git@github.com:your-org/oxidized-configs.git
+
+volumes:
+  oxidized-git-repo:
+    driver: local

@@ -1,0 +1,101 @@
+---
+debug: false
+interval: 86400
+resolve_dns: false
+threads: 50
+timeout: 20
+retries: 1
+prompt: !ruby/regexp /^([\\w.@-]+[#>]\\s?)$/
+rest: '0.0.0.0:8888'
+
+models:
+  eos:
+    vars:
+      auth_methods: [ "keyboard-interactive", "password" ]
+    username: "__NETWORK_USERNAME__"
+    password: "__NETWORK_PASSWORD__"
+    input: ssh
+  nxos:
+    vars:
+    username: "__NETWORK_USERNAME__"
+    password: "__NETWORK_PASSWORD__"
+    input: ssh
+  ios:
+    vars:
+    username: "__NETWORK_USERNAME__"
+    password: "__NETWORK_PASSWORD__"
+    input: ssh
+  xos:
+    vars:
+    username: "__NETWORK_USERNAME__"
+    password: "__NETWORK_PASSWORD__"
+    input: ssh
+  panos_api:
+    input: http
+    vars:
+#      secure: false
+#      ssl_verify: false
+    username: "__PAN_API_USER_RO__"
+    password: "__PAN_API_PASS_RO__"
+
+input:
+  default: ssh, http
+  ssh:
+    secure: false
+    auth_methods: keyboard-interactive
+  http:
+    secure: false
+    ssl_verify: false
+
+output:
+  default: git
+  git:
+    single_repo: true
+    user: oxidized
+    email: oxidized@example.com
+    repo: "/home/oxidized/.config/oxidized/configs.git"
+    branch: master
+# Used for testing to not disturb Git repo
+#  default: file
+#  file:
+#    directory: /home/oxidized/.config/oxidized/configs
+
+hooks:
+  push_to_remote:
+    type: githubrepo
+    events: [post_store]
+    remote_repo: git@github.com:your-org/oxidized-configs.git
+    publickey: /home/oxidized/.ssh/id_ed25519.pub
+    privatekey: /home/oxidized/.ssh/id_ed25519
+  syslog_notifier:
+    type: exec
+    events: [node_success, node_fail, post_store]
+    cmd: /home/oxidized/.config/oxidized/hooks/syslog_hook.sh
+    timeout: 10
+
+source:
+  default: http
+  http:
+    url: "https://netbox.example.com/api/dcim/devices/?status=active&platform=eos&platform=exos&platform=pan-os&platform=nx-os&platform=ios&platform=ios-xe&limit=1000&has_primary_ip=true"
+    scheme: https
+    delimiter: !ruby/regexp /:/
+    secure: false
+    headers:
+      Authorization: "Token __NETBOX_TOKEN__"
+    insecure: true
+    pagination: true
+    pagination_key_name: 'next'
+    map:
+      name: "name"
+      group: "site.slug"
+      ip: "primary_ip4.address"
+      model: "platform.slug"
+    hosts_location: results
+
+model_map:
+  ios: ios
+  ios-xe: ios
+  nx-os: nxos
+  eos: eos
+  exos: xos
+  pan-os: panos_api
